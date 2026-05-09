@@ -1,79 +1,120 @@
 <?php
+require_once 'config/database.php';
 
-@include 'config.php';
-
-if(isset($_POST['submit'])){
-
-   $filter_name = filter_var($_POST['name'], FILTER_SANITIZE_STRING);
-   $name = mysqli_real_escape_string($conn, $filter_name);
-   $filter_email = filter_var($_POST['email'], FILTER_SANITIZE_STRING);
-   $email = mysqli_real_escape_string($conn, $filter_email);
-   $filter_pass = filter_var($_POST['pass'], FILTER_SANITIZE_STRING);
-   $pass = mysqli_real_escape_string($conn, md5($filter_pass));
-   $filter_cpass = filter_var($_POST['cpass'], FILTER_SANITIZE_STRING);
-   $cpass = mysqli_real_escape_string($conn, md5($filter_cpass));
-
-   $select_users = mysqli_query($conn, "SELECT * FROM `users` WHERE email = '$email'") or die('query failed');
-
-   if(mysqli_num_rows($select_users) > 0){
-      $message[] = 'user already exist!';
-   }else{
-      if($pass != $cpass){
-         $message[] = 'confirm password not matched!';
-      }else{
-         mysqli_query($conn, "INSERT INTO `users`(name, email, password) VALUES('$name', '$email', '$pass')") or die('query failed');
-         $message[] = 'registered successfully!';
-         header('location:login.php');
-      }
-   }
-
+if (isset($_SESSION['user'])) {
+    header('Location: index.php');
+    exit();
 }
 
-?>
+$error = '';
+$success = '';
 
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $name = trim($_POST['name']);
+    $email = trim($_POST['email']);
+    $password = $_POST['password'];
+    $confirm_password = $_POST['confirm_password'];
+    
+    if (empty($name) || empty($email) || empty($password)) {
+        $error = 'All fields are required!';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = 'Invalid email format!';
+    } elseif (strlen($password) < 6) {
+        $error = 'Password must be at least 6 characters!';
+    } elseif ($password !== $confirm_password) {
+        $error = 'Passwords do not match!';
+    } else {
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+        $stmt->execute([$email]);
+        
+        if ($stmt->rowCount() > 0) {
+            $error = 'Email already registered!';
+        } else {
+            $hashed_password = md5($password);
+            $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, 'user')");
+            
+            if ($stmt->execute([$name, $email, $hashed_password])) {
+                $success = 'Registration successful! You can now login.';
+                $name = $email = '';
+            } else {
+                $error = 'Registration failed!';
+            }
+        }
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-   <meta charset="UTF-8">
-   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <title>register</title>
-
-   <!-- font awesome cdn link  -->
-   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-   <!-- custom css file link  -->
-   <link rel="stylesheet" href="css/style.css">
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .register-card {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        .form-control {
+            border-radius: 25px;
+            padding: 12px 20px;
+        }
+        .btn-register {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            width: 100%;
+            padding: 12px;
+            border-radius: 25px;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-
-<?php
-if(isset($message)){
-   foreach($message as $message){
-      echo '
-      <div class="message">
-         <span>'.$message.'</span>
-         <i class="fas fa-times" onclick="this.parentElement.remove();"></i>
-      </div>
-      ';
-   }
-}
-?>
-   
-<section class="form-container">
-
-   <form action="" method="post">
-      <h3>register now</h3>
-      <input type="text" name="name" class="box" placeholder="enter your username" required>
-      <input type="email" name="email" class="box" placeholder="enter your email" value="<?php echo isset($_POST['email']) ? $_POST['email'] : ''; ?>" required>
-      <input type="password" name="pass" class="box" placeholder="enter your password" required>
-      <input type="password" name="cpass" class="box" placeholder="confirm your password" required>
-      <input type="submit" class="btn" name="submit" value="register now">
-      <p>already have an account? <a href="login.php">login now</a></p>
-   </form>
-
-</section>
-
+    <div class="register-card">
+        <h2 class="text-center mb-4">
+            <i class="fas fa-user-plus me-2"></i>Create Account
+        </h2>
+        
+        <?php if($error): ?>
+            <div class="alert alert-danger"><?php echo $error; ?></div>
+        <?php endif; ?>
+        
+        <?php if($success): ?>
+            <div class="alert alert-success"><?php echo $success; ?></div>
+        <?php endif; ?>
+        
+        <form method="POST">
+            <div class="mb-3">
+                <input type="text" name="name" class="form-control" placeholder="Full Name" value="<?php echo isset($name) ? htmlspecialchars($name) : ''; ?>" required>
+            </div>
+            <div class="mb-3">
+                <input type="email" name="email" class="form-control" placeholder="Email Address" value="<?php echo isset($email) ? htmlspecialchars($email) : ''; ?>" required>
+            </div>
+            <div class="mb-3">
+                <input type="password" name="password" class="form-control" placeholder="Password (min 6 characters)" required>
+            </div>
+            <div class="mb-3">
+                <input type="password" name="confirm_password" class="form-control" placeholder="Confirm Password" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-register">
+                <i class="fas fa-user-plus me-2"></i>Register
+            </button>
+        </form>
+        <div class="text-center mt-3">
+            Already have an account? <a href="login.php">Login here</a>
+        </div>
+    </div>
 </body>
 </html>
