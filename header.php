@@ -1,64 +1,81 @@
 <?php
-if(isset($message)){
-   foreach($message as $message){
-      echo '
-      <div class="message">
-         <span>'.$message.'</span>
-         <i class="fas fa-times" onclick="this.parentElement.remove();"></i>
-      </div>
-      ';
-   }
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (!isset($_SESSION['user'])) {
+    header('Location: ../login.php');
+    exit();
 }
 ?>
-
-<header class="header">
-
-    <div class="flex">
-
-        <a href="home.php" class="logo">flowers.</a>
-
-        <nav class="navbar">
-            <ul>
-                <li><a href="home.php">home</a></li>
-                <li><a href="#">pages +</a>
-                    <ul>
-                        <li><a href="about.php">about</a></li>
-                        <li><a href="contact.php">contact</a></li>
-                    </ul>
-                </li>
-                <li><a href="shop.php">shop</a></li>
-                <li><a href="orders.php">orders</a></li>
-                <li><a href="#">account +</a>
-                    <ul>
-                        <li><a href="login.php">login</a></li>
-                        <li><a href="register.php">register</a></li>
-                    </ul>
-                </li>
-            </ul>
-        </nav>
-
-        <div class="icons">
-            <div id="menu-btn" class="fas fa-bars"></div>
-            <a href="search_page.php" class="fas fa-search"></a>
-            <div id="user-btn" class="fas fa-user"></div>
-            <?php
-                $select_wishlist_count = mysqli_query($conn, "SELECT * FROM `wishlist` WHERE user_id = '$user_id'") or die('query failed');
-                $wishlist_num_rows = mysqli_num_rows($select_wishlist_count);
-            ?>
-            <a href="wishlist.php"><i class="fas fa-heart"></i><span>(<?php echo $wishlist_num_rows; ?>)</span></a>
-            <?php
-                $select_cart_count = mysqli_query($conn, "SELECT * FROM `cart` WHERE user_id = '$user_id'") or die('query failed');
-                $cart_num_rows = mysqli_num_rows($select_cart_count);
-            ?>
-            <a href="cart.php"><i class="fas fa-shopping-cart"></i><span>(<?php echo $cart_num_rows; ?>)</span></a>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Business Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background-color: #343a40;
+        }
+        .sidebar a {
+            color: white;
+            padding: 10px 15px;
+            display: block;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+        .sidebar a:hover {
+            background-color: #007bff;
+        }
+        .navbar-brand {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/website_flower/modules/dashboard.php">
+                <i class="fas fa-store me-2"></i>Admin Dashboard
+            </a>
+            <div class="d-flex">
+                <span class="text-white me-3">
+                    <i class="fas fa-user me-1"></i><?php echo $_SESSION['user']['name']; ?>
+                </span>
+                <a href="/website_flower/logout.php" class="btn btn-danger btn-sm">
+                    <i class="fas fa-sign-out-alt me-1"></i>Logout
+                </a>
+            </div>
         </div>
-
-        <div class="account-box">
-            <p>username : <span><?php echo $_SESSION['user_name']; ?></span></p>
-            <p>email : <span><?php echo $_SESSION['user_email']; ?></span></p>
-            <a href="logout.php" class="delete-btn">logout</a>
-        </div>
-
-    </div>
-
-</header>
+    </nav>
+    
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 p-0 sidebar">
+                <div class="mt-3">
+                    
+                    <a href="/website_flower/modules/dashboard.php">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a href="/website_flower/modules/products/index.php">
+                        <i class="fas fa-box me-2"></i>Products
+                    </a>
+                    <a href="/website_flower/modules/orders/index.php">
+                        <i class="fas fa-shopping-cart me-2"></i>Orders
+                    </a>
+                    <a href="/website_flower/modules/users/index.php">
+                        <i class="fas fa-users me-2"></i>Users
+                    </a>
+                    <a href="/website_flower/modules/messages/index.php">
+                        <i class="fas fa-envelope me-2"></i>Messages
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-10 p-4">
